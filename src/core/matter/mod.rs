@@ -7,16 +7,8 @@ use crate::error::{err, Error, Result};
 
 pub mod tables;
 
-#[cfg_attr(feature = "python", pyclass)]
-#[derive(Debug, Clone)]
-pub struct Matter {
-    pub(crate) raw: Vec<u8>,
-    pub(crate) code: String,
-    pub(crate) size: u32,
-}
-
-impl Matter {
-    pub fn new_with_code_and_raw(code: &str, raw: &[u8]) -> Result<Matter> {
+pub trait Matter {
+    fn new_with_code_and_raw(code: &str, raw: &[u8]) -> Result<Self> {
         if code.is_empty() {
             return err!(Error::EmptyMaterial("empty code".to_string()));
         }
@@ -87,50 +79,47 @@ impl Matter {
             )));
         }
 
-        Ok(Matter { code, size, raw: raw[..rize as usize].to_vec() })
+        Ok(Self { code, size, raw: raw[..rize as usize].to_vec() })
     }
-
-    pub fn new_with_qb64(qb64: &str) -> Result<Matter> {
+    fn new_with_qb64(qb64: &str) -> Result<Self> {
         let mut matter: Matter = Default::default();
         matter.exfil(qb64)?;
         Ok(matter)
     }
-
-    pub fn new_with_qb64b(qb64b: &[u8]) -> Result<Matter> {
+    fn new_with_qb64b(qb64b: &[u8]) -> Result<Self> {
         let qb64 = String::from_utf8(qb64b.to_vec())?;
 
         let mut matter: Matter = Default::default();
         matter.exfil(&qb64)?;
         Ok(matter)
     }
-
-    pub fn new_with_qb2(qb2: &[u8]) -> Result<Matter> {
+    fn new_with_qb2(qb2: &[u8]) -> Result<Self> {
         let mut matter: Matter = Default::default();
         matter.bexfil(qb2)?;
         Ok(matter)
     }
 
-    pub fn code(&self) -> String {
+    fn code(&self) -> String {
         self.code.clone()
     }
 
-    pub fn size(&self) -> u32 {
+    fn size(&self) -> u32 {
         self.size
     }
 
-    pub fn raw(&self) -> Vec<u8> {
+    fn raw(&self) -> Vec<u8> {
         self.raw.clone()
     }
 
-    pub fn qb64(&self) -> Result<String> {
+    fn qb64(&self) -> Result<String> {
         self.infil()
     }
 
-    pub fn qb64b(&self) -> Result<Vec<u8>> {
+    fn qb64b(&self) -> Result<Vec<u8>> {
         Ok(self.qb64()?.as_bytes().to_vec())
     }
 
-    pub fn qb2(&self) -> Result<Vec<u8>> {
+    fn qb2(&self) -> Result<Vec<u8>> {
         self.binfil()
     }
 
@@ -484,16 +473,17 @@ impl Matter {
     }
 }
 
-impl Default for Matter {
-    fn default() -> Self {
-        Matter { raw: vec![], code: tables::Codex::Blake3_256.code().to_string(), size: 0 }
-    }
-}
-
 #[cfg(test)]
 mod matter_tests {
     use crate::core::matter::{tables as matter, Matter};
     use rstest::rstest;
+
+    struct TestMatter {
+    }
+
+    impl Matter for TestMatter {
+        
+    }
 
     #[rstest]
     #[case(&vec![0, 1, 2, 3, 4, 5, 6, 7, 8], matter::Codex::StrB64_L0.code())]
